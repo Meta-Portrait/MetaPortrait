@@ -11,8 +11,8 @@
 ## Todo
 
 - [x] Release the inference code of base model
-- [] Release the training code of base model
-- [] Release the training and inference code of sr model 
+- [ ] Release the training code of base model
+- [ ] Release the training and inference code of sr model 
 
 ## Setup Environment
 
