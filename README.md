@@ -1,6 +1,10 @@
-# MetaPortrait: Identity-Preserving Talking Head Generation with Fast Personalized Adaptation
+# MetaPortrait
 
-[Bowen Zhang](http://home.ustc.edu.cn/~zhangbowen)\*, [Chenyang Qi](https://chenyangqiqi.github.io)\*, [Pan Zhang](https://panzhang0212.github.io), [Bo Zhang](https://bo-zhang.me/), [HsiangTao Wu](https://dl.acm.org/profile/81487650131), [Dong Chen](http://www.dongchen.pro/), [Qifeng Chen](https://cqf.io), [Yong Wang](http://en.auto.ustc.edu.cn/2021/0616/c26828a513186/page.htm) and [Fang Wen](https://www.microsoft.com/en-us/research/people/fangwen/).
+![Teaser](./docs/Teaser.png)
+
+This repo is the official implementation of "MetaPortrait: Identity-Preserving Talking Head Generation with Fast Personalized Adaptation" (CVPR 2023).
+
+By [Bowen Zhang](http://home.ustc.edu.cn/~zhangbowen)\*, [Chenyang Qi](https://chenyangqiqi.github.io)\*, [Pan Zhang](https://panzhang0212.github.io), [Bo Zhang](https://bo-zhang.me/), [HsiangTao Wu](https://dl.acm.org/profile/81487650131), [Dong Chen](http://www.dongchen.pro/), [Qifeng Chen](https://cqf.io), [Yong Wang](http://en.auto.ustc.edu.cn/2021/0616/c26828a513186/page.htm) and [Fang Wen](https://www.microsoft.com/en-us/research/people/fangwen/).
 
 [Paper](https://arxiv.org/abs/2212.08062) | [Project Page](https://meta-portrait.github.io/) | [Code](https://github.com/Meta-Portrait/MetaPortrait)
 
@@ -64,3 +68,11 @@ python inference.py --save_dir /path/to/output --config config/meta_portrait_256
       primaryClass={cs.CV}
 }
 ```
+
+## Acknowledgements
+
+This code borrows heavily from [FOMM](https://github.com/AliaksandrSiarohin/first-order-model), thanks the authors for sharing their code and models.
+
+## Maintenance
+
+This is the codebase for our research work. Please open a GitHub issue for any help. If you have any questions regarding the technical details, feel free to contact [zhangbowen@mail.ustc.edu.cn](zhangbowen@mail.ustc.edu.cn) or [cqiaa@connect.ust.hk](cqiaa@connect.ust.hk).
