@@ -14,9 +14,9 @@ By [Bowen Zhang](http://home.ustc.edu.cn/~zhangbowen)\*, [Chenyang Qi](https://c
 
 ## Todo
 
-- [x] Release the inference code of base model
+- [x] Release the inference code of base model and temporal super-resolution model
 - [x] Release the training code of base model
-- [ ] Release the training and inference code of sr model 
+- [ ] Release the training code of super-resolution model
 
 ## Setup Environment
 
@@ -88,6 +88,65 @@ python main.py --config config/meta_portrait_256_pretrain_meta_train.yaml --fp16
       primaryClass={cs.CV}
 }
 ```
+## Inference Temporal Super-resolution Model
+
+###  Base Environment
+
+- Python >= 3.7 (Recommend to use [Anaconda](https://www.anaconda.com/download/#linux) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
+- [PyTorch >= 1.7](https://pytorch.org/)
+- System: Linux + NVIDIA GPU + [CUDA](https://developer.nvidia.com/cuda-downloads)
+- Set the root path to [sr_model](sr_model)
+### Data and checkpoint
+
+Download the [dataset](
+https://hkustconnect-my.sharepoint.com/:f:/g/personal/cqiaa_connect_ust_hk/EuZ_hj6hcERKlDgajp-mhvwBxv4D1CX6_hPO4qJlSxK_cw?e=f4CnUI)
+and [checkpoint](https://hkustconnect-my.sharepoint.com/:f:/g/personal/cqiaa_connect_ust_hk/EiV7jVV_YjJMtuZDsC8pjK4BmDEEPJ0h55NqLbPLcPbXIw?e=RlHXbd).
+
+Then keep the file structure like
+
+```
+pretrained_ckpt
+├── stable-diffusion-v1-4
+├── jeep_tuned_200
+...
+data
+├── car-turn
+│   ├── 00000000.png
+│   ├── 00000001.png
+│   ├── ...
+Basicsr
+Experimental_root
+options
+```
+
+### Installation Bash command
+
+
+```bash
+pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu116
+# Install a modified basicsr - https://github.com/xinntao/BasicSR
+
+cd Basicsr
+pip install -r requirements.txt
+python setup.py develop
+
+# Install facexlib - https://github.com/xinntao/facexlib
+# We use face detection and face restoration helper in the facexlib package
+pip install facexlib
+cd ..
+pip install -r requirements.txt
+python setup.py develop
+```
+
+### Quick Inference
+ckpt for inference: pretrained_ckpt/temporal_gfpgan.pth
+
+Example code to conduct face temporal super-resolution:
+
+```bash
+CUDA_VISIBLE_DEVICES=7 python -m torch.distributed.launch --nproc_per_node=1 --master_port=4321 Experimental_root/test.py -opt options/test/same_id.yml --launcher pytorch
+```
+You may adjust the ```CUDA_VISIBLE_DEVICES``` and ```nproc_per_node``` to the number of GPUs on your own machine.
 
 ## Acknowledgements
 

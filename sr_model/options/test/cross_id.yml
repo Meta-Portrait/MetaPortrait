@@ -1,0 +1,84 @@
+# general settings
+# CUDA_VISIBLE_DEVICES=6,7 python -m torch.distributed.launch --nproc_per_node=2 --master_port=4321 Experimental_root/test.py -opt options/test/cross_id.yml --launcher pytorch
+
+name: temporal_gfpgan_cross_id_temporal_super_resolution
+model_type: MetaportraitVideoRecurrentModel
+scale: 2
+num_gpu: auto  # official: 8 GPUs
+manual_seed: 0
+
+# dataset and data loader settings
+datasets:
+  val:
+    name: hdtf_random
+    type: MetaportraitVideoRecurrentTestDataset
+    dataroot_lq: ./data/cross_id_ffhq
+    lq_temp: "*/final"
+    dataroot_gt: ./data/cross_id_ffhq
+    gt_temp: "*/final"
+    cache_data: false
+    io_backend:
+      type: disk
+    num_frame: -1  # not needed
+    clean_hdtf_folder: False
+    # val_first_frame: 50
+
+
+# network structures
+network_g:
+  type: GFPGANv1Clean_UnetWindow
+  GFPGANv1_load_path: pretrained_ckpt/GFPGANv1.3.pth
+  out_size: 512
+  num_style_feat: 512
+  channel_multiplier: 2
+  fix_decoder: True
+  num_mlp: 8
+  input_is_latent: true
+  different_w: true
+  narrow: 1
+  sft_half: true
+  return_rgb: false
+  randomize_noise: zero
+  zero_out_init: True
+  temp_type: unet_window
+
+# path
+path:
+  pretrain_network_g: ./pretrained_ckpt/temporal_gfpgan.pth
+  strict_load_g: true
+  resume_state: ~
+
+# validation settings
+val:
+  val_freq: !!float 5e2
+  # val_freq: !!float 1
+  save_img: true
+  save_input: true
+  temp_psz: 16
+
+  metrics: None
+    # psnr: # metric name, can be arbitrary
+    #   type: calculate_psnr
+    #   crop_border: 0
+    #   test_y_channel: false
+    #   better: higher
+    #   strict_shape: False
+  #   lpips: # metric name, can be arbitrary
+  #     type: calculate_lpips
+  #     crop_border: 0
+  #     test_y_channel: false
+  #     better: lower
+  #     strict_shape: False
+  # # temp_metrics:
+  #   temp_warp:
+  #     type: calculate_temp_warping_error
+  #     frame_limit: 50
+  #     better: lower
+
+
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
+
