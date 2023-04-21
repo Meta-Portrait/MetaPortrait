@@ -87,13 +87,13 @@ Then keep the file structure like
 
 ```
 pretrained_ckpt
-├── stable-diffusion-v1-4
-├── jeep_tuned_200
+├── temporal_gfpgan.pth
+├── GFPGANv1.3.pth
 ...
 data
-├── car-turn
-│   ├── 00000000.png
-│   ├── 00000001.png
+├── HDTF_warprefine
+│   ├── gt
+│   ├── lq
 │   ├── ...
 Basicsr
 Experimental_root
