@@ -1,0 +1,97 @@
+general:
+  exp_name: meta_portrait_meta_train
+  random_seed: 365
+
+dataset:
+  frame_shape: [256, 256, 3]
+  eye_enhance: True
+  mouth_enhance: True
+  ldmkimg: True
+  ldmk_idx: [521, 505, 338, 398, 347, 35, 191, 30, 32, 207, 630, 629, 319, 4, 541, 61, 637, 660, 638, 587, 273, 590, 269, 432, 118,327, 12, 373, 58, 619, 466, 469, 464, 308, 152, 305, 150, 411, 635, 634, 564, 250, 443, 129, 364, 322, 49, 7, 361, 105, 434, 120, 500, 186, 575, 261, 636, 74]
+  
+  train_data: [meta]
+  train_data_weight: [1]
+
+  meta:
+    root: ../data/   
+    crop_expand: 1.3
+    crop_offset_y: 0.2
+  
+model:
+  arch: 'SPADEID'
+  # warp_ckpt: /mnt/blob/projects/IMmeeting/amlt-results/Meeting_exp_25/Orig_RegMotion_Ladder256_VoxCeleb2_Warp_SPADEInit_FeatureNorm_Bs48_Baseline_15eps_256/results/ckpt/spade/ckpt_15_2022-08-27-00-10-08.pth.tar
+  common:
+    num_channels: 3
+
+  kp_detector:
+    temperature: 0.1
+    block_expansion: 32
+    max_features: 1024
+    scale_factor: 0.25
+    num_blocks: 5
+  generator:
+    block_expansion: 64
+    max_features: 512
+    with_gaze_htmap: True
+    with_mouth_line: True
+    with_ldmk_line: True
+    use_IN: True
+    ladder: 
+      need_feat: False
+      use_mask: False
+      label_nc: 0
+      z_dim: 512
+    dense_motion_params:
+      label_nc: 0
+      ldmkimg: True
+      occlusion: True
+      block_expansion: 64
+      max_features: 1024
+      num_blocks: 5
+      dec_lease: 2
+      Lwarp: True
+      AdaINc: 512
+  discriminator:
+    scales: [1]
+    block_expansion: 32
+    max_features: 512
+    num_blocks: 4
+    use_kp: False
+
+train:
+  epochs: 5
+  batch_size: 0
+  dataset_repeats: 1
+
+  epoch_milestones: [2]
+  lr_generator: 2.0e-5
+  lr_discriminator: 2.0e-5
+  lr_kp_detector: 2.0e-5
+  warplr_tune: 0.1
+  outer_beta_1: 0.5
+  outer_beta_2: 0.999
+  inner_lr_generator: 2.0e-4
+  inner_lr_discriminator: 2.0e-4
+  inner_warplr_tune: 0.1
+  inner_beta_1: 0.5
+  inner_beta_2: 0.999
+
+  scales: [1, 0.5, 0.25, 0.125]
+
+  loss_weights:
+    generator_gan: 0
+    discriminator_gan: 1
+    feature_matching: [10, 10, 10, 10]
+    perceptual: [10, 10, 10, 10, 10]
+    id: 20
+    eye_enhance: 50
+    mouth_enhance: 50
+
+  tensorboard: True
+  event_save_path: ./results/events/
+  event_save_freq: 50
+
+  ckpt_save_path: ./results/ckpt/
+  ckpt_save_iter_freq: 500
+  ckpt_save_freq: 1
+  print_freq: 50

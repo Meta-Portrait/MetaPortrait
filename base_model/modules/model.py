@@ -261,12 +261,7 @@ class DiscriminatorFullModel(torch.nn.Module):
         self.train_params = train_params
         self.scales = self.discriminator.scales
         self.use_kp = discriminator.use_kp
-        self.use_mask = train_params['use_mask']
-        self.num_mask_classes = train_params['num_mask_classes']
-        if self.use_mask:
-            self.pyramid = ImagePyramide(self.scales, generator.num_channels + self.num_mask_classes)
-        else:
-            self.pyramid = ImagePyramide(self.scales, generator.num_channels)
+        self.pyramid = ImagePyramide(self.scales, generator.num_channels)
         if torch.cuda.is_available():
             self.pyramid = self.pyramid.cuda()
 

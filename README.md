@@ -15,7 +15,7 @@ By [Bowen Zhang](http://home.ustc.edu.cn/~zhangbowen)\*, [Chenyang Qi](https://c
 ## Todo
 
 - [x] Release the inference code of base model
-- [ ] Release the training code of base model
+- [x] Release the training code of base model
 - [ ] Release the training and inference code of sr model 
 
 ## Setup Environment
@@ -54,6 +54,26 @@ You could generate results of self reconstruction on 256x256 resolution by runni
 ```bash
 cd base_model
 python inference.py --save_dir /path/to/output --config config/meta_portrait_256_eval.yaml --ckpt checkpoint/ckpt_base.pth.tar
+```
+
+## Train Base Model from Scratch
+
+Train the warping network first using the following command:
+```bash
+cd base_model
+python main.py --config config/meta_portrait_256_pretrain_warp.yaml --fp16 --stage Warp --task Pretrain
+```
+
+Then, modify the path of `warp_ckpt` in `config/meta_portrait_256_pretrain_full.yaml` and joint train the warping network and refinement network using the following command:
+```bash
+python main.py --config config/meta_portrait_256_pretrain_full.yaml --fp16 --stage Full --task Pretrain
+```
+
+## Meta Training for Faster Personalization of Base Model
+
+You could start from the standard pretrained checkpoint and further optimize the personalized adaptation speed of the model by utilizing meta-learning using the following command:
+```bash
+python main.py --config config/meta_portrait_256_pretrain_meta_train.yaml --fp16 --stage Full --task Meta --remove_sn --ckpt /path/to/standard_pretrain_ckpt
 ```
 
 ## Citing MetaPortrait
