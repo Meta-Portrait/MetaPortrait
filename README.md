@@ -14,9 +14,8 @@ By [Bowen Zhang](http://home.ustc.edu.cn/~zhangbowen)\*, [Chenyang Qi](https://c
 
 ## Todo
 
-- [x] Release the inference code of base model and temporal super-resolution mode
-  - [ ] Code refactoring and upte README for super-resolution model
-- [ ] Release the training code of base model
+- [x] Release the inference code of base model and temporal super-resolution model
+- [x] Release the training code of base model
 - [ ] Release the training code of super-resolution model
 
 ## Setup Environment
@@ -28,7 +27,9 @@ conda env create -f environment.yml
 conda activate meta_portrait_base
 ```
 
-## Inference Base Model
+## Base Model
+
+### Inference Base Model
 
 Download the [checkpoint of base model](https://drive.google.com/file/d/1Kmdv3w6N_we7W7lIt6LBzqRHwwy1dBxD/view?usp=share_link) and put it to `base_model/checkpoint`. We provide [preprocessed example data for inference](https://drive.google.com/file/d/166eNbabM6TeJVy7hxol2gL1kUGKHi3Do/view?usp=share_link), you could download the data, unzip and put it to `data`. The directory structure should like this:
 
@@ -57,26 +58,35 @@ cd base_model
 python inference.py --save_dir /path/to/output --config config/meta_portrait_256_eval.yaml --ckpt checkpoint/ckpt_base.pth.tar
 ```
 
-## Citing MetaPortrait
+### Train Base Model from Scratch
 
+Train the warping network first using the following command:
+```bash
+cd base_model
+python main.py --config config/meta_portrait_256_pretrain_warp.yaml --fp16 --stage Warp --task Pretrain
 ```
-@misc{zhang2022metaportrait,
-      title={MetaPortrait: Identity-Preserving Talking Head Generation with Fast Personalized Adaptation}, 
-      author={Bowen Zhang and Chenyang Qi and Pan Zhang and Bo Zhang and HsiangTao Wu and Dong Chen and Qifeng Chen and Yong Wang and Fang Wen},
-      year={2022},
-      eprint={2212.08062},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
-}
-```
-## Inference Temporal Super-resolution Model
 
-###  Base Environment
+Then, modify the path of `warp_ckpt` in `config/meta_portrait_256_pretrain_full.yaml` and joint train the warping network and refinement network using the following command:
+```bash
+python main.py --config config/meta_portrait_256_pretrain_full.yaml --fp16 --stage Full --task Pretrain
+```
+
+### Meta Training for Faster Personalization of Base Model
+
+You could start from the standard pretrained checkpoint and further optimize the personalized adaptation speed of the model by utilizing meta-learning using the following command:
+```bash
+python main.py --config config/meta_portrait_256_pretrain_meta_train.yaml --fp16 --stage Full --task Meta --remove_sn --ckpt /path/to/standard_pretrain_ckpt
+```
+
+## Temporal Super-resolution Model
+
+### Base Environment
 
 - Python >= 3.7 (Recommend to use [Anaconda](https://www.anaconda.com/download/#linux) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
 - [PyTorch >= 1.7](https://pytorch.org/)
 - System: Linux + NVIDIA GPU + [CUDA](https://developer.nvidia.com/cuda-downloads)
 - Set the root path to [sr_model](sr_model)
+
 ### Data and checkpoint
 
 Download the [dataset](
@@ -102,7 +112,6 @@ options
 
 ### Installation Bash command
 
-
 ```bash
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu116
 # Install a modified basicsr - https://github.com/xinntao/BasicSR
@@ -120,14 +129,28 @@ python setup.py develop
 ```
 
 ### Quick Inference
+
 ckpt for inference: pretrained_ckpt/temporal_gfpgan.pth
 
 Example code to conduct face temporal super-resolution:
 
 ```bash
-CUDA_VISIBLE_DEVICES=7 python -m torch.distributed.launch --nproc_per_node=1 --master_port=4321 Experimental_root/test.py -opt options/test/same_id.yml --launcher pytorch
+python -m torch.distributed.launch --nproc_per_node=1 --master_port=4321 Experimental_root/test.py -opt options/test/same_id.yml --launcher pytorch
 ```
-You may adjust the ```CUDA_VISIBLE_DEVICES``` and ```nproc_per_node``` to the number of GPUs on your own machine.
+You may adjust the ```nproc_per_node``` to the number of GPUs on your own machine.
+
+## Citing MetaPortrait
+
+```
+@misc{zhang2022metaportrait,
+      title={MetaPortrait: Identity-Preserving Talking Head Generation with Fast Personalized Adaptation}, 
+      author={Bowen Zhang and Chenyang Qi and Pan Zhang and Bo Zhang and HsiangTao Wu and Dong Chen and Qifeng Chen and Yong Wang and Fang Wen},
+      year={2022},
+      eprint={2212.08062},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
+```
 
 ## Acknowledgements
 

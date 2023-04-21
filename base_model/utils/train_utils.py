@@ -5,6 +5,16 @@ import random
 import numpy as np
 import cv2
 import torch
+import torch.nn as nn
+from torch.optim.lr_scheduler import MultiStepLR
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch import distributed as dist
+
+from modules.generator import Generator
+from modules.model import (
+    GeneratorFullModel,
+    DiscriminatorFullModel
+)
 
 
 def adjust_lr(optim, epoch, args):
@@ -173,3 +183,207 @@ def nan_to_num(input, nan=0.0, posinf=None, neginf=None, *, out=None): # pylint:
         neginf = torch.finfo(input.dtype).min
     assert nan == 0
     return torch.clamp(input.unsqueeze(0).nansum(0), min=neginf, max=posinf, out=out)
+
+
+def build_outer_optimizer_and_scheduler(conf, G, D):
+    base_params_id = list(map(id, G.dense_motion_network.parameters()))
+    if conf["model"]["generator"].get("ladder", False):
+        base_params_id += list(map(id, G.ladder_network.parameters()))
+    warp_params = filter(lambda p: id(p) in base_params_id, G.parameters())
+    refine_params = filter(lambda p: id(p) not in base_params_id, G.parameters())
+    optim_G = torch.optim.Adam(
+        [
+            {"params": refine_params},
+            {
+                "params": warp_params,
+                "lr": conf["train"]["lr_generator"] * conf["train"].get("warplr_tune", 1.0),
+            },
+        ],
+        lr=conf["train"]["lr_generator"],
+        betas=(conf["train"].get("outer_beta_1", 0.5), conf["train"].get("outer_beta_2", 0.999)),
+    )
+    optim_D = torch.optim.Adam(
+        D.parameters(), lr=conf["train"]["lr_discriminator"], betas=(conf["train"].get("outer_beta_1", 0.5), conf["train"].get("outer_beta_2", 0.999))
+    )
+
+    scheduler_G = MultiStepLR(
+        optim_G,
+        conf["train"]["epoch_milestones"],
+        gamma=0.1,
+        last_epoch=-1,
+    )
+    scheduler_D = MultiStepLR(
+        optim_D,
+        conf["train"]["epoch_milestones"],
+        gamma=0.1,
+        last_epoch=-1,
+    )
+    return optim_G, optim_D, scheduler_G, scheduler_D
+
+
+def build_inner_optimizer(conf, G_full_clone, D_full_clone):
+    base_params_id = list(map(id, G_full_clone.generator.dense_motion_network.parameters()))
+    if conf["model"]["generator"].get("ladder", False):
+        base_params_id += list(map(id, G_full_clone.generator.ladder_network.parameters()))
+    warp_params = filter(lambda p: id(p) in base_params_id, G_full_clone.generator.parameters())
+    refine_params = filter(lambda p: id(p) not in base_params_id, G_full_clone.generator.parameters())
+    inner_optimizer_G = torch.optim.Adam(
+                                    [
+                                        {"params": refine_params},
+                                        {
+                                            "params": warp_params,
+                                            "lr": conf["train"]["inner_lr_generator"] * conf["train"].get("inner_warplr_tune", 1.0),
+                                        },
+                                    ],
+                                    lr=conf["train"]["inner_lr_generator"],
+                                    betas=(conf["train"].get("inner_beta_1", 0.5), conf["train"].get("inner_beta_2", 0.999)),
+                                )
+    inner_optimizer_D = torch.optim.Adam(
+        D_full_clone.discriminator.parameters(), lr=conf["train"]["inner_lr_discriminator"], betas=(conf["train"].get("inner_beta_1", 0.5), conf["train"].get("inner_beta_2", 0.999))
+    )
+    return inner_optimizer_G, inner_optimizer_D
+
+
+def build_full_model(conf, args, G, D):
+    G_full = GeneratorFullModel(
+        None,
+        G,
+        D,
+        conf["train"],
+        conf["model"].get("arch", None),
+        rank=args["local_rank"],
+        conf=conf,
+    )
+    if conf["model"]["discriminator"].get("type", "MultiPatchGan") == "MultiPatchGan":
+        D_full = DiscriminatorFullModel(None, G, D, conf["train"])
+    else:
+        raise Exception("Unsupported discriminator type: {}".format(conf["model"]["discriminator"].get("type", "MultiPatchGan")))
+
+    # w/ sync-batchnorm at modules/util.py
+    G_full.generator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(G_full.generator)
+    G_full = DDP(G_full, device_ids=[args["local_rank"]], find_unused_parameters=True)
+    D_full = DDP(
+        D_full,
+        device_ids=[args["local_rank"]],
+        find_unused_parameters=True,
+        broadcast_buffers=False,
+    )
+    return G_full, D_full
+
+
+def clone_model(conf, args, G, D):
+    G_full_clone = GeneratorFullModel(
+        None,
+        G,
+        D,
+        conf["train"],
+        conf["model"].get("arch", None),
+        rank=args["local_rank"],
+        conf=conf,
+    )
+    G_full_clone.cuda()
+    D_full_clone = DiscriminatorFullModel(None, G, D, conf["train"])
+    D_full_clone.cuda()
+    
+    return G_full_clone, D_full_clone
+
+
+def convert_data_to_cuda(data):
+    for key, value in data.items():
+        if isinstance(value, list):
+            if isinstance(value[0], (str, list)):
+                continue
+            data[key] = [v.cuda() for v in value]
+        elif isinstance(value, str):
+            continue
+        else:
+            data[key] = value.cuda()
+    return data
+
+
+def return_batch_data(data, start, end):
+    batch_data = {}
+    for key, value in data.items():
+        batch_data[key] = value[start:end, ...]
+    return batch_data
+
+
+def return_cls_data(data, index):
+    cls_data = {}
+    for key, value in data.items():
+        cls_data[key] = value[:, index, ...]
+    return cls_data
+
+
+def process_vis_data(data):
+    for key, value in data.items():
+        if isinstance(value, list):
+            if isinstance(value[0], str):
+                continue
+            data[key] = [v.cpu() for v in value]
+        elif isinstance(value, str):
+            continue
+        else:
+            data[key] = value.cpu().transpose(0, 1).reshape(-1, *value.shape[2:])
+    return data
+
+
+def save_events(writer, losses_G, loss_G, step, losses_D=None, loss_D=None, generated=None, loss_G_init=None, loss_D_init=None):
+    for key in losses_G:
+        writer.Scalar(key + "_G", losses_G[key].mean(), step)
+    if losses_D is not None:
+        for key in losses_D:
+            writer.Scalar(key + "_D", losses_D[key].mean(), step)
+        writer.Scalar("loss_D", loss_D, step)
+    writer.Scalar("loss_G", loss_G, step)
+    if loss_D_init is not None:
+        writer.Scalar("loss_D_init", loss_D_init, step)
+    if loss_G_init is not None:
+        writer.Scalar("loss_G_init", loss_G_init, step)
+    if generated is not None:
+        writer.Image("Pred", generated["prediction"][:16], step)
+
+
+def save_training_images(conf, args, writer, generated, data, step, num):
+    writer.save_image(
+                generated["prediction"].cpu(),
+                generated["deformed"].cpu(),
+                step,
+                data["source"],
+                data["driving"],
+                num=num,
+                src_ldmk_line=data["source_line"],
+                drv_ldmk_line=data["driving_line"],
+            )
+
+
+def reduce_loss_dict(loss_dict, world_size):
+    if world_size < 2:
+        return loss_dict
+
+    with torch.no_grad():
+        keys = []
+        losses = []
+
+        for k in sorted(loss_dict.keys()):
+            keys.append(k)
+            losses.append(loss_dict[k])
+
+        losses = torch.stack(losses, 0)
+        dist.reduce(losses, dst=0)
+
+        if dist.get_rank() == 0:
+            losses /= world_size
+
+        reduced_losses = {k: v for k, v in zip(keys, losses)}
+
+    return reduced_losses
+
+
+def reduce_loss(loss, world_size):
+    if world_size < 2:
+        return loss
+
+    with torch.no_grad():
+        dist.reduce(loss, dst=0) 
+        return loss / world_size
