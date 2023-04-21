@@ -5,9 +5,7 @@
 
 - Python >= 3.7 (Recommend to use [Anaconda](https://www.anaconda.com/download/#linux) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
 - [PyTorch >= 1.7](https://pytorch.org/)
-- Option: NVIDIA GPU + [CUDA](https://developer.nvidia.com/cuda-downloads)
-- Option: Linux
-
+- System: Linux + NVIDIA GPU + [CUDA](https://developer.nvidia.com/cuda-downloads)
 
 ### Data and checkpoint
 
@@ -16,6 +14,8 @@ https://hkustconnect-my.sharepoint.com/:f:/g/personal/cqiaa_connect_ust_hk/EuZ_h
 and [checkpoint](https://hkustconnect-my.sharepoint.com/:f:/g/personal/cqiaa_connect_ust_hk/EiV7jVV_YjJMtuZDsC8pjK4BmDEEPJ0h55NqLbPLcPbXIw?e=RlHXbd).
 
 Then keep the file structure like
+
+```
 pretrained_ckpt
 ├── stable-diffusion-v1-4
 ├── jeep_tuned_200
@@ -28,6 +28,7 @@ data
 Basicsr
 Experimental_root
 options
+```
 
 ### Installation Bash command
 
