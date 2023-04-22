@@ -25,6 +25,10 @@ git clone https://github.com/Meta-Portrait/MetaPortrait.git
 cd MetaPortrait
 conda env create -f environment.yml
 conda activate meta_portrait_base
+
+# if you use GPU that only support cuda11, you may reinstall the torch build with cu11
+# pip uninstall torch
+# pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu116
 ```
 
 ## Base Model
@@ -80,20 +84,20 @@ python main.py --config config/meta_portrait_256_pretrain_meta_train.yaml --fp16
 
 ## Temporal Super-resolution Model
 
-### Base Environment
-
-- Python >= 3.7 (Recommend to use [Anaconda](https://www.anaconda.com/download/#linux) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
-- [PyTorch >= 1.7](https://pytorch.org/)
-- System: Linux + NVIDIA GPU + [CUDA](https://developer.nvidia.com/cuda-downloads)
-- Set the root path to [sr_model](sr_model)
+Set the root path to [sr_model](sr_model)
 
 ### Data and checkpoint
 
 Download the [dataset](
-https://hkustconnect-my.sharepoint.com/:f:/g/personal/cqiaa_connect_ust_hk/EuZ_hj6hcERKlDgajp-mhvwBxv4D1CX6_hPO4qJlSxK_cw?e=f4CnUI)
-and [checkpoint](https://hkustconnect-my.sharepoint.com/:f:/g/personal/cqiaa_connect_ust_hk/EiV7jVV_YjJMtuZDsC8pjK4BmDEEPJ0h55NqLbPLcPbXIw?e=RlHXbd).
+https://github.com/Meta-Portrait/MetaPortrait/releases/download/v0.0.1/HDTF_warprefine.zip)
+and [checkpoint](https://github.com/Meta-Portrait/MetaPortrait/releases/download/v0.0.1/temporal_gfpgan.pth) using the bash command
 
-Then keep the file structure like
+```bash
+cd sr_model
+bash download_sr.sh
+```
+
+Unzip the package and keep the file structure like
 
 ```
 pretrained_ckpt
@@ -113,7 +117,7 @@ options
 ### Installation Bash command
 
 ```bash
-pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu116
+
 # Install a modified basicsr - https://github.com/xinntao/BasicSR
 
 cd Basicsr
@@ -125,7 +129,7 @@ python setup.py develop
 pip install facexlib
 cd ..
 pip install -r requirements.txt
-python setup.py develop
+# python setup.py develop
 ```
 
 ### Quick Inference
@@ -138,7 +142,7 @@ Example code to conduct face temporal super-resolution:
 python -m torch.distributed.launch --nproc_per_node=1 --master_port=4321 Experimental_root/test.py -opt options/test/same_id.yml --launcher pytorch
 ```
 You may adjust the ```nproc_per_node``` to the number of GPUs on your own machine.
-
+Finally, check the result at ```results/temporal_gfpgan_same_id_temporal_super_resolution```.
 ## Citing MetaPortrait
 
 ```

@@ -7,7 +7,7 @@ sys.path.append(root_path)
 from basicsr.train import train_pipeline
 
 
-import Experimental_root.data
+import Experimental_root.dataset
 import Experimental_root.archs
 import Experimental_root.models
 

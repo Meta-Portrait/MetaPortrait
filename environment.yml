@@ -30,7 +30,6 @@ dependencies:
     - astor==0.8.1
     - attrs==21.4.0
     - backcall==0.2.0
-    - basicsr==1.4.2
     - beautifulsoup4==4.11.1
     - bleach==5.0.0
     - cachetools==5.2.0

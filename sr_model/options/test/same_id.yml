@@ -25,7 +25,6 @@ datasets:
 # network structures
 network_g:
   type: GFPGANv1Clean_UnetWindow
-  GFPGANv1_load_path: pretrained_ckpt/GFPGANv1.3.pth
   out_size: 512
   num_style_feat: 512
   channel_multiplier: 2
