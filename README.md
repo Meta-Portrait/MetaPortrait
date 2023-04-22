@@ -59,7 +59,7 @@ data
 You could generate results of self reconstruction on 256x256 resolution by running:
 ```bash
 cd base_model
-python inference.py --save_dir /path/to/output --config config/meta_portrait_256_eval.yaml --ckpt checkpoint/ckpt_base.pth.tar
+python inference.py --save_dir result --config config/meta_portrait_256_eval.yaml --ckpt checkpoint/ckpt_base.pth.tar
 ```
 
 ### Train Base Model from Scratch
@@ -88,9 +88,7 @@ Set the root path to [sr_model](sr_model)
 
 ### Data and checkpoint
 
-Download the [dataset](
-https://github.com/Meta-Portrait/MetaPortrait/releases/download/v0.0.1/HDTF_warprefine.zip)
-and [checkpoint](https://github.com/Meta-Portrait/MetaPortrait/releases/download/v0.0.1/temporal_gfpgan.pth) using the bash command
+Download the [checkpoint](https://github.com/Meta-Portrait/MetaPortrait/releases/download/v0.0.1/temporal_gfpgan.pth) using the bash command
 
 ```bash
 cd sr_model
@@ -135,14 +133,22 @@ pip install -r requirements.txt
 ### Quick Inference
 
 ckpt for inference: pretrained_ckpt/temporal_gfpgan.pth
-
+<!-- 
 Example code to conduct face temporal super-resolution:
-
 ```bash
 python -m torch.distributed.launch --nproc_per_node=1 --master_port=4321 Experimental_root/test.py -opt options/test/same_id.yml --launcher pytorch
+``` -->
+
+Enhance the result from our base model without calculating the metrics:
+```bash
+python -m torch.distributed.launch --nproc_per_node=1 --master_port=4321 Experimental_root/test.py -opt options/test/same_id_demo.yml --launcher pytorch
 ```
 You may adjust the ```nproc_per_node``` to the number of GPUs on your own machine.
 Finally, check the result at ```results/temporal_gfpgan_same_id_temporal_super_resolution```.
+
+
+
+
 ## Citing MetaPortrait
 
 ```

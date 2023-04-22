@@ -1,0 +1,7 @@
+*/__pycache__/
+*.pyc
+.vscode/
+data/
+checkpoint/
+output/
+result/
