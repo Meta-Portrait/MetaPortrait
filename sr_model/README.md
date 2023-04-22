@@ -1,7 +1,7 @@
 
 # Temporal Super Resolution in Metaportrait
 
-Check the dependance and inference code [here](../README.md)
+Check the dependance and inference command [here](https://github.com/Meta-Portrait/MetaPortrait#temporal-super-resolution-model)
 
 ## Inference other data
 Edit the dataroot_lq and dataroot_gt.
