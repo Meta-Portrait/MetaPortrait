@@ -1,0 +1,174 @@
+# general settings
+# CUDA_VISIBLE_DEVICES=1 python -m torch.distributed.launch --nproc_per_node=1 --master_port=4321 Experimental_root/train.py -opt options/train/train_sr_hdtf.yml --launcher pytorch
+
+name: train_sr_hdtf
+model_type: MetaportraitVideoRecurrentModel
+scale: 2
+num_gpu: auto  # official: 8 GPUs
+manual_seed: 0
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: HDTF
+    type: HDTFRecurrentDataset
+
+    # Debugging test set
+    dataroot_lq: data/HDTF_warprefine/lq
+    dataroot_gt: data/HDTF_warprefine/gt
+
+    # Full training
+    # dataroot_lq: data/HDTF_SR_train_full_100/HDTF_SR_train_full_100_inference
+    # lq_temp: "/*/final/*.png"
+    # lq_prefix: "final"
+    # dataroot_gt: data/HDTF_SR_train_full_100/HDTF_SR_train_full_100/data
+    # gt_prefix: "imgs"
+    # gt_temp: "/*/imgs/*.png"
+
+    test_mode: False
+    io_backend:
+      type: disk
+
+
+    num_frame: 6
+    gt_size: 512
+    interval_list: [1]
+    random_reverse: false
+    use_hflip: true
+    use_rot: False
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 6
+    batch_size_per_gpu: 1
+    dataset_enlarge_ratio: 200
+    prefetch_mode: ~
+    # train_first_frame: 300
+
+  val:
+    name: hdtf_random
+    type: MetaportraitVideoRecurrentTestDataset
+    dataroot_lq: data/HDTF_warprefine/lq
+    # lq_temp: "/*/final"
+    dataroot_gt: data/HDTF_warprefine/gt
+    # gt_temp: "/*/imgs"
+    cache_data: False
+    io_backend:
+      type: disk
+    num_frame: -1  # not needed
+    val_first_frame: 50
+
+# network structures
+network_g:
+  type: GFPGANv1Clean_UnetWindow
+  GFPGANv1_load_path: pretrained_ckpt/GFPGANv1.3.pth
+  out_size: 512
+  num_style_feat: 512
+  channel_multiplier: 2
+  fix_decoder: True
+  num_mlp: 8
+  input_is_latent: true
+  different_w: true
+  narrow: 1
+  sft_half: true
+  return_rgb: false
+  randomize_noise: zero
+  zero_out_init: True
+  temp_type: unet_window
+# path
+path:
+  # pretrain_network_g: None
+  strict_load_g: False
+  resume_state: ~
+
+# training settings
+train:
+  ema_decay: 0.999
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: CosineAnnealingRestartLR
+    periods: [300000]
+    restart_weights: [1]
+    eta_min: !!float 1e-7
+
+  total_iter: 300000
+  warmup_iter: -1  # no warm up
+
+  opt_rm_param: ['stylegan_decoder']
+  requires_grad_all_iter: 1000
+  # fix_flow: 5000
+  flow_lr_mul: 0.0125
+  recurrent_lr_mul: 1
+
+  # losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: !!float 1e-1
+    reduction: mean
+  # # L1 loss used in pyramid loss, component style loss and identity loss
+  # L1_opt:
+  #   type: L1Loss
+  #   loss_weight: 1
+  #   reduction: mean
+
+  perceptual_opt:
+    type: PerceptualLoss
+    layer_weights:
+      # before relu
+      'conv1_2': 0.1
+      'conv2_2': 0.1
+      'conv3_4': 1
+      'conv4_4': 1
+      'conv5_4': 1
+    vgg_type: vgg19
+    use_input_norm: true
+    perceptual_weight: !!float 1
+    style_weight: 50
+    range_norm: true
+    criterion: l1
+# validation settings
+val:
+  val_freq: !!float 5e2
+  # val_freq: !!float 1
+  save_img: true
+  save_input: true
+  temp_psz: 9
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+      better: higher
+    lpips: # metric name, can be arbitrary
+      type: calculate_lpips
+      crop_border: 0
+      test_y_channel: false
+      better: lower
+    # temp_metrics:
+    temp_warp:
+      type: calculate_temp_warping_error
+      frame_limit: 50
+      better: lower
+
+
+# logging settings
+logger:
+  print_freq: 10
+  print_module_para: ["conv_body_first", "stylegan_decoder", "recurrent_forward", "spynet"]
+  save_checkpoint_freq: !!float 5e2
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
+
+find_unused_parameters: true

@@ -97,7 +97,7 @@ class MetaportraitVideoRecurrentModel(VideoBaseModel):
                         param.requires_grad_(True)
                         logger.warning(f'Free Params {name} from optimizer')
                 logger.warning('Free all param in net_g.')
-        super(VideoRecurrentModel, self).optimize_parameters(current_iter)
+        super(MetaportraitVideoRecurrentModel, self).optimize_parameters(current_iter)
 
     def dist_validation(self, dataloader, current_iter, tb_logger, save_img):
         dataset = dataloader.dataset

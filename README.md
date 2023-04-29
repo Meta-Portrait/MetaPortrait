@@ -16,7 +16,7 @@ By [Bowen Zhang](http://home.ustc.edu.cn/~zhangbowen)\*, [Chenyang Qi](https://c
 
 - [x] Release the inference code of base model and temporal super-resolution model
 - [x] Release the training code of base model
-- [ ] Release the training code of super-resolution model
+- [x] Release the training code of super-resolution model
 
 ## Setup Environment
 
@@ -146,8 +146,14 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=4321 Experim
 You may adjust the ```nproc_per_node``` to the number of GPUs on your own machine.
 Finally, check the result at ```results/temporal_gfpgan_same_id_temporal_super_resolution```.
 
+### Demo training
 
+In the paper result, we train on the training split of hdtf dataset. Here we first provide a demo training code to train on the small demo dataset
 
+```bash
+CUDA_VISIBLE_DEVICES=1 python -m torch.distributed.launch --nproc_per_node=1 --master_port=4321 Experimental_root/train.py -opt options/train/train_sr_hdtf.yml --launcher pytorch
+```
+The intermediate result can be check at `/home/cqiaa/talkinghead/MetaPortrait/sr_model/experiments/train_sr_hdtf/visualization/00000001/hdtf_random`
 
 ## Citing MetaPortrait
 
